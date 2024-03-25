@@ -94,8 +94,6 @@
   </body>
 
   <script>
-    console.log("hello");
-
     const query = async () => {
       // Get the list container element
       var listContainer = document.getElementById("list");
@@ -104,22 +102,19 @@
       listContainer.innerHTML = "";
 
       // const response = await fetch("/query");
-      const topic = document.getElementById("query").value;
+      const query = document.getElementById("query").value;
 
       const response = await fetch("/query", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ topic: topic }),
+        body: JSON.stringify({ query: query }),
       });
 
       const json = await response.json();
 
       console.log(json);
-
-      // update ui
-      // document.getElementById("content").innerHTML = json.Messages;
 
       // Create an array of items
       var items = json.Messages;
