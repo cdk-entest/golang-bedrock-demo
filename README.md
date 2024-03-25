@@ -6,6 +6,8 @@ date: 25/03/2024
 
 ## Introduction
 
+Video demo
+
 [![screencast thumbnail](./image/video.png)](https://d2cvlmmg8c0xrp.cloudfront.net/demo/go-bedrock-demo.mp4)
 
 This repo shows how to get started with Amazon Bedrock in golang through basic examples.
