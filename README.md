@@ -436,3 +436,18 @@ func QueryAOSS(vec []float64) ([]string, error) {
 ```
 
 </details>
+
+## UserData
+
+```go
+cd /home/ec2-user/
+wget https://go.dev/dl/go1.21.5.linux-amd64.tar.gz
+tar -xvf go1.21.5.linux-amd64.tar.gz
+echo 'PATH=/home/ec2-user/go/bin/go:$PATH' >> ~/.bashrc
+
+wget https://github.com/cdk-entest/golang-bedrock-demo/archive/refs/heads/main.zip
+unzip main
+cd golang-bedrock-demo/
+go mod tidy
+go run main.go
+```
