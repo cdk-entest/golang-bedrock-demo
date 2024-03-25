@@ -28,7 +28,6 @@ type AossResponse struct {
 func QueryAOSS(vec []float64) ([]string, error) {
 
 	// let query get all item in an index
-
 	// content := strings.NewReader(`{
 	//     "size": 10,
 	//     "query": {
@@ -223,7 +222,6 @@ func TestQueryAOSS() {
 
 	for k, v := range awnsers {
 		fmt.Println(k, v)
-		fmt.Println("====================================")
 	}
 
 }

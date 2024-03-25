@@ -415,8 +415,3 @@ func TestHaiku() {
 	}
 
 }
-
-// func main() {
-
-// 	TestHaiku()
-// }
