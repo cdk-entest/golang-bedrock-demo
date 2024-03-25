@@ -217,3 +217,218 @@ if error != nil {
 // response
 fmt.Println(string(output.Body))
 ```
+
+## OpenSearch
+
+- create OpenSearch client
+- convert user question to embedding vector
+- send query or request to OpenSearch
+
+A OpenSearch and Bedrock client can be initialized as below
+
+<details>
+<summary>InitOpenSearchBedrockClient</summary>
+
+```go
+// opensearch severless client
+var AOSSClient *opensearch.Client
+
+// bedrock client
+var BedrockClient *bedrockruntime.Client
+
+// create an init function to initializing opensearch client
+func init() {
+
+	//
+	fmt.Println("init and create an opensearch client")
+
+	// load aws credentials from profile demo using config
+	awsCfg, err := config.LoadDefaultConfig(context.Background(),
+		config.WithRegion("us-east-1"),
+	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// create bedorck runtime client
+	BedrockClient = bedrockruntime.NewFromConfig(awsCfg)
+
+	// create a aws request signer using requestsigner
+	signer, err := requestsigner.NewSignerWithService(awsCfg, "aoss")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	uncommen for opensearch client
+	create an opensearch client using opensearch package
+	AOSSClient, err = opensearch.NewClient(opensearch.Config{
+		Addresses: []string{AOSS_ENDPOINT},
+		Signer:    signer,
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+</details>
+
+Create a function to convert text to vector by invoking Amazon Bedrock Titan model.
+
+<details>
+<summary>GetEmbedVector</summary>
+
+```go
+func GetEmbedVector(qustion string) ([]float64, error) {
+
+	// create request body to titan model
+	body := map[string]interface{}{
+		"inputText": qustion,
+	}
+	bodyJson, err := json.Marshal(body)
+
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	// invoke bedrock titan model to convert string to embedding vector
+	response, error := BedrockClient.InvokeModel(
+		context.Background(),
+		&bedrockruntime.InvokeModelInput{
+			Body:        []byte(bodyJson),
+			ModelId:     aws.String("amazon.titan-embed-text-v1"),
+			ContentType: aws.String("application/json"),
+		},
+	)
+
+	if error != nil {
+		fmt.Println(error)
+		return nil, error
+	}
+
+	// assert response to map
+	var embedResponse map[string]interface{}
+
+	error = json.Unmarshal(response.Body, &embedResponse)
+
+	if error != nil {
+		fmt.Println(error)
+		return nil, error
+	}
+
+	// assert response to array
+	slice, ok := embedResponse["embedding"].([]interface{})
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	// assert to array of float64
+	values := make([]float64, len(slice))
+
+	for k, v := range slice {
+		values[k] = float64(v.(float64))
+	}
+
+	return values, nil
+}
+```
+
+</details>
+
+Then send request or query to AOSS
+
+<details>
+<summary>QueryOpenSearch</summary>
+
+```go
+func QueryAOSS(vec []float64) ([]string, error) {
+
+	// let query get all item in an index
+	// content := strings.NewReader(`{
+	//     "size": 10,
+	//     "query": {
+	//         "match_all": {}
+	//         }
+	// }`)
+
+	vecStr := make([]string, len(vec))
+
+	// convert array float to string
+	for k, v := range vec {
+
+		if k < len(vec)-1 {
+			vecStr[k] = fmt.Sprint(v) + ","
+		} else {
+			vecStr[k] = fmt.Sprint(v)
+		}
+
+	}
+
+	// create request body to titan model
+	content := strings.NewReader(fmt.Sprintf(`{
+		"size": 5,
+		"query": {
+			"knn": {
+				"vector_field": {
+					"vector": %s,
+					"k": 5
+				}
+			}
+		}
+	}`, vecStr))
+
+	// fmt.Println(content)
+
+	search := opensearchapi.SearchRequest{
+		Index: []string{"demo"},
+		Body:  content,
+	}
+
+	searchResponse, err := search.Do(context.Background(), AOSSClient)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// fmt.Println(searchResponse)
+
+	var answer AossResponse
+
+	json.NewDecoder(searchResponse.Body).Decode(&answer)
+
+	// first := answer.Hits.Hits[0]
+
+	// fmt.Printf("id: %s\n, index: %s\n, text: %s", first["_id"], first["_index"], first["_source"].(map[string]interface{})["text"])
+
+	// fmt.Println(answer.Hits.Hits[0]["_id"])
+
+	queryResult := answer.Hits.Hits[0]["_source"].(map[string]interface{})["text"]
+
+	if queryResult == nil {
+		return []string{"nil"}, nil
+	}
+
+	// extract hint text only
+	hits := []string{}
+
+	for k, v := range answer.Hits.Hits {
+
+		if k > 0 {
+			hits = append(hits, v["_source"].(map[string]interface{})["text"].(string))
+		}
+
+	}
+
+	return hits, nil
+
+	// return fmt.Sprint(queryResult), nil
+
+}
+```
+
+</details>
